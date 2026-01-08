@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord.utils import get
 from datetime import datetime
+import os
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -10,10 +11,23 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ───── Checks ─────
-def has_warn_admin():
+def can_warn():
     async def predicate(ctx):
-        role = get(ctx.guild.roles, name="WarnAdmin")
-        return role in ctx.author.roles
+        allowed_roles = [
+            "WarnAdmin",
+            "warnings management ⚠️🚷"
+        ]
+        user_roles = [role.name for role in ctx.author.roles]
+        return any(role in user_roles for role in allowed_roles)
+    return commands.check(predicate)
+
+def can_manage_warns():
+    async def predicate(ctx):
+        allowed_roles = [
+            "warnings management ⚠️🚷"
+        ]
+        user_roles = [role.name for role in ctx.author.roles]
+        return any(role in user_roles for role in allowed_roles)
     return commands.check(predicate)
 
 def get_log_channel(guild):
@@ -25,7 +39,7 @@ async def on_ready():
 
 # ───── Warn ─────
 @bot.command()
-@has_warn_admin()
+@can_warn()
 async def warn(ctx, member: discord.Member, *, reason="بدون سبب"):
     warn_roles = ["Warn1", "Warn2", "Warn3"]
     current = 0
@@ -89,7 +103,7 @@ async def warn(ctx, member: discord.Member, *, reason="بدون سبب"):
 
 # ───── Clear Warns ─────
 @bot.command()
-@has_warn_admin()
+@can_manage_warns()
 async def clearwarns(ctx, member: discord.Member):
     for name in ["Warn1", "Warn2", "Warn3"]:
         role = get(ctx.guild.roles, name=name)
@@ -118,7 +132,7 @@ async def jail(ctx, member: discord.Member, *, reason="بدون سبب"):
     await ctx.send(f"⛓️ {member.mention} دخل السجن | السبب: {reason}")
 
 @bot.command()
-@commands.has_permissions(manage_roles=True)
+@can_manage_warns()
 async def unjail(ctx, member: discord.Member):
     jail_role = get(ctx.guild.roles, name="Jail")
     await member.remove_roles(jail_role)
