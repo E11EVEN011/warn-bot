@@ -4,6 +4,10 @@ from discord.utils import get
 from datetime import datetime
 import os
 
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
 # ───── Intents ─────
 intents = discord.Intents.default()
 intents.message_content = True
