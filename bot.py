@@ -6,8 +6,6 @@ from datetime import datetime
 app = dash.Dash()
 server = app.server
 
-///Rest of my Code///
-
 #Code to start server
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8050))
