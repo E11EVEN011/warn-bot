@@ -2,11 +2,18 @@ import discord
 from discord.ext import commands
 from discord.utils import get
 from datetime import datetime
-import os
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+app = dash.Dash()
+server = app.server
+
+///Rest of my Code///
+
+#Code to start server
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8050))
+    host = '0.0.0.0'
+    print(f"Starting server on {host}:{port}")
+    app.run_server(debug=False, host=host, port=port)
 
 # ───── Intents ─────
 intents = discord.Intents.default()
