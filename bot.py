@@ -4,27 +4,42 @@ from discord.utils import get
 from datetime import datetime
 import os
 
+# ───── Intents ─────
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ───── Checks ─────
+# ───── Role Checks ─────
+
+# أي شخص عنده WarnAdmin أو WARNINGS MANAGEMENT يقدر يعطي تحذير
 def can_warn():
     async def predicate(ctx):
         allowed_roles = [
             "WarnAdmin",
-            "warnings management ⚠️🚷"
+            "WARNINGS MANAGEMENT"
         ]
         user_roles = [role.name for role in ctx.author.roles]
         return any(role in user_roles for role in allowed_roles)
     return commands.check(predicate)
 
+# أي شخص عنده WARNINGS MANAGEMENT يقدر يدير التحذيرات والسجون
 def can_manage_warns():
     async def predicate(ctx):
         allowed_roles = [
-            "warnings management ⚠️🚷"
+            "WARNINGS MANAGEMENT"
+        ]
+        user_roles = [role.name for role in ctx.author.roles]
+        return any(role in user_roles for role in allowed_roles)
+    return commands.check(predicate)
+
+# أي شخص عنده UG MANAGEMENT يقدر يسجن (الاوامر المستقلة)
+def can_jail():
+    async def predicate(ctx):
+        allowed_roles = [
+            "UG MANAGEMENT",
+            "WARNINGS MANAGEMENT"  # لأنهم كل الصلاحيات
         ]
         user_roles = [role.name for role in ctx.author.roles]
         return any(role in user_roles for role in allowed_roles)
@@ -33,11 +48,12 @@ def can_manage_warns():
 def get_log_channel(guild):
     return get(guild.text_channels, name="warn-logs")
 
+# ───── Ready ─────
 @bot.event
 async def on_ready():
     print(f"Ready as {bot.user}")
 
-# ───── Warn ─────
+# ───── Warn Command ─────
 @bot.command()
 @can_warn()
 async def warn(ctx, member: discord.Member, *, reason="بدون سبب"):
@@ -65,9 +81,12 @@ async def warn(ctx, member: discord.Member, *, reason="بدون سبب"):
             await member.add_roles(muted)
             action = "🔇 تم كتمك تلقائيًا بسبب الوصول لـ 3 تحذيرات"
 
-    # DM
+    # ── DM ──
     try:
-        embed = discord.Embed(title="⚠️ تم تحذيرك", color=discord.Color.orange())
+        embed = discord.Embed(
+            title="⚠️ تم تحذيرك",
+            color=discord.Color.orange()
+        )
         embed.add_field(name="📌 السيرفر", value=ctx.guild.name, inline=False)
         embed.add_field(name="🔢 رقم التحذير", value=str(new_warn), inline=True)
         embed.add_field(name="📝 السبب", value=reason, inline=False)
@@ -78,7 +97,7 @@ async def warn(ctx, member: discord.Member, *, reason="بدون سبب"):
 
     await ctx.send(f"⚠️ {member.mention} أخذ تحذير رقم {new_warn}")
 
-    # Log
+    # ── Log ──
     log = get_log_channel(ctx.guild)
     if log:
         embed = discord.Embed(
@@ -110,7 +129,7 @@ async def clearwarns(ctx, member: discord.Member):
         if role in member.roles:
             await member.remove_roles(role)
 
-    await ctx.send(f"🧹 تم مسح تحذيرات {member}")
+    await ctx.send(f"🧹 تم مسح تحذيرات {member.mention}")
 
     log = get_log_channel(ctx.guild)
     if log:
@@ -125,12 +144,18 @@ async def clearwarns(ctx, member: discord.Member):
 
 # ───── Jail ─────
 @bot.command()
-@commands.has_permissions(manage_roles=True)
+@can_jail()
 async def jail(ctx, member: discord.Member, *, reason="بدون سبب"):
     jail_role = get(ctx.guild.roles, name="Jail")
+
+    if not jail_role:
+        await ctx.send("❌ رول Jail غير موجود")
+        return
+
     await member.add_roles(jail_role)
     await ctx.send(f"⛓️ {member.mention} دخل السجن | السبب: {reason}")
 
+# ───── UnJail ─────
 @bot.command()
 @can_manage_warns()
 async def unjail(ctx, member: discord.Member):
@@ -138,5 +163,5 @@ async def unjail(ctx, member: discord.Member):
     await member.remove_roles(jail_role)
     await ctx.send(f"🔓 {member.mention} خرج من السجن")
 
-import os
+# ───── Run ─────
 bot.run(os.getenv("TOKEN"))
